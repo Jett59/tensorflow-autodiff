@@ -1,8 +1,7 @@
 import time
 import tensorflow
 
-def get_mean_squared_error(expected, actual):
-    return tensorflow.reduce_mean(tensorflow.square(expected - actual))
+import loss_functions
 
 class DenseLayer:
     def __init__(self, input_count):
@@ -19,11 +18,12 @@ class DenseLayer:
         return tensorflow.linalg.matvec(self.weights, input) + self.bias
 
 class Model:
-    def __init__(self, layers, output_count):
+    def __init__(self, layers, output_count, loss_function):
         self.layers = layers
         for i in range(len(layers) - 1):
             layers[i].build(layers[i + 1].input_count)
         layers[-1].build(output_count)
+        self.loss_function = loss_function
 
     def variables(self):
         return [variable for layer in self.layers for variable in layer.variables()]
@@ -35,14 +35,12 @@ class Model:
         return result
     
     def loss(self, input, expected_output):
-        return get_mean_squared_error(expected_output, self.calculate(input))
+        return self.loss_function(self.calculate(input), expected_output)
 
-@tensorflow.function
-def combined_loss(model, input_values, expected_values):
-    result = 0
-    for (input, expected) in zip(tensorflow.unstack(input_values), tensorflow.unstack(expected_values)):
-        result += model.loss(input, expected)
-    return result
+    @tensorflow.function
+    def combined_loss(self, input_values, expected_values):
+        # Run the model over all of the inputs and sum the losses.
+        return tensorflow.reduce_sum(tensorflow.vectorized_map(lambda x: self.loss(x[0], x[1]), (input_values, expected_values)))
 
 class GradientDescent:
     def __init__(self, learning_rate):
@@ -55,21 +53,21 @@ class GradientDescent:
 @tensorflow.function
 def training_step(model, variables, inputs, expected_outputs, optimizer):
     with tensorflow.GradientTape() as tape:
-        loss = combined_loss(model, inputs, expected_outputs)
+        loss = model.combined_loss(inputs, expected_outputs)
         gradients = tape.gradient(loss, variables)
         optimizer(variables, gradients)
         return loss
 
 model = Model([
     DenseLayer(2),
-], 2)
+], 2, loss_functions.mean_squared_error)
 variables = model.variables()
-inputs = tensorflow.random.uniform((1000, 2), -2, 2)
+inputs = tensorflow.random.uniform((10000, 2), -2, 2)
 expected_outputs = tensorflow.reverse(inputs, axis=[1])
 batch_size = 32
 evenly_divisible_batch_count = inputs.shape[0] // batch_size
-batched_inputs = tensorflow.reshape(inputs[:evenly_divisible_batch_count * batch_size], (evenly_divisible_batch_count, batch_size, 2))
-batched_expected_outputs = tensorflow.reshape(expected_outputs[:evenly_divisible_batch_count * batch_size], (evenly_divisible_batch_count, batch_size, 2))
+batched_inputs = tensorflow.reshape(inputs[:evenly_divisible_batch_count * batch_size], (evenly_divisible_batch_count, batch_size, inputs.shape[1]))
+batched_expected_outputs = tensorflow.reshape(expected_outputs[:evenly_divisible_batch_count * batch_size], (evenly_divisible_batch_count, batch_size, expected_outputs.shape[1]))
 
 optimizer = GradientDescent(0.001)
 starting_time = time.time()
@@ -82,7 +80,7 @@ for i in range(10):
     print()
 
 ending_time = time.time()
-loss = combined_loss(model, inputs, expected_outputs)
+loss = model.combined_loss(inputs, expected_outputs)
 print("Final loss: %s (in %s seconds)" % (loss.numpy(), ending_time - starting_time))
 for variable in variables:
     print("Variable: %s, value: %s" % (variable.name, variable.numpy()))
