@@ -6,13 +6,15 @@ def get_mean_squared_error(expected, actual):
 
 class MyModel:
     def __init__(self, matrix_shape):
+        assert len(matrix_shape) == 2
         self.matrix = tensorflow.Variable(tensorflow.constant(1., shape=matrix_shape), shape=matrix_shape, name="matrix")
+        self.bias = tensorflow.Variable(tensorflow.constant(1., shape=matrix_shape[1]), shape=matrix_shape[1], name="bias")
 
     def variables(self):
-        return [self.matrix]
+        return [self.matrix, self.bias]
 
     def calculate(self, input):
-        return tensorflow.matmul(input, self.matrix)
+        return tensorflow.matmul(input, self.matrix) + self.bias
 
     def loss(self, input, expected):
         return get_mean_squared_error(expected, self.calculate(input))
@@ -26,11 +28,11 @@ def combined_loss(model, input_values, expected_values):
 
 class GradientDescent:
     def __init__(self, learning_rate):
-        self.learning_rate = learning_rate
+        self.learning_rate = tensorflow.Variable(learning_rate)
 
     def __call__(self, variables, gradients):
         for (gradient, variable) in zip(gradients, variables):
-            variable.assign_sub(gradient * self.learning_rate)
+            variable.assign_sub(self.learning_rate * gradient)
 
 @tensorflow.function
 def training_step(model, variables, inputs, expected_outputs, optimizer):
@@ -42,8 +44,8 @@ def training_step(model, variables, inputs, expected_outputs, optimizer):
 
 model = MyModel((2, 2,))
 variables = model.variables()
-inputs = tensorflow.constant([[[2.0, 9.0]], [[20.0, 11.0]]])
-expected_outputs = tensorflow.constant([[9.0, 2.0], [11.0, 20.0]])
+inputs = tensorflow.constant([[[2.0, 9.0]], [[20.0, 11.0]], [[-2.0, 10.0]]])
+expected_outputs = tensorflow.constant([[9.0, 2.0], [11.0, 20.0], [10.0, -2.0]])
 initial_loss = combined_loss(model, inputs, expected_outputs)
 print("Initial loss: %s" % initial_loss.numpy())
 
