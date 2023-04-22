@@ -74,10 +74,12 @@ batched_expected_outputs = tensorflow.reshape(expected_outputs[:evenly_divisible
 optimizer = GradientDescent(0.001)
 starting_time = time.time()
 for i in range(10):
+    print("Epoch %s" % (i + 1))
     loss = 0
-    for (batched_input, batched_expected_output) in zip(tensorflow.unstack(batched_inputs), tensorflow.unstack(batched_expected_outputs)):
+    for batch_index, (batched_input, batched_expected_output) in enumerate(zip(tensorflow.unstack(batched_inputs), tensorflow.unstack(batched_expected_outputs))):
         loss = training_step(model, variables, batched_input, batched_expected_output, optimizer)
-    print("%s: Loss: %s" % (i, loss.numpy()))
+        print("%s/%s: Loss: %s\t\t\t" % (batch_index + 1, len(batched_inputs), loss.numpy()), end="\r")
+    print()
 
 ending_time = time.time()
 loss = combined_loss(model, inputs, expected_outputs)
