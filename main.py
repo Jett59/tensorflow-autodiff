@@ -66,15 +66,18 @@ model = Model([
 variables = model.variables()
 inputs = tensorflow.random.uniform((1000, 2), -2, 2)
 expected_outputs = tensorflow.reverse(inputs, axis=[1])
-initial_loss = combined_loss(model, inputs, expected_outputs)
-print("Initial loss: %s" % initial_loss.numpy())
+batch_size = 32
+evenly_divisible_batch_count = inputs.shape[0] // batch_size
+batched_inputs = tensorflow.reshape(inputs[:evenly_divisible_batch_count * batch_size], (evenly_divisible_batch_count, batch_size, 2))
+batched_expected_outputs = tensorflow.reshape(expected_outputs[:evenly_divisible_batch_count * batch_size], (evenly_divisible_batch_count, batch_size, 2))
 
-optimizer = GradientDescent(0.0001)
+optimizer = GradientDescent(0.001)
 starting_time = time.time()
-for i in range(5000):
-    loss = training_step(model, variables, inputs, expected_outputs, optimizer)
-    if i % 1000 == 0:
-        print("%s: Loss: %s" % (i, loss.numpy()))
+for i in range(10):
+    loss = 0
+    for (batched_input, batched_expected_output) in zip(tensorflow.unstack(batched_inputs), tensorflow.unstack(batched_expected_outputs)):
+        loss = training_step(model, variables, batched_input, batched_expected_output, optimizer)
+    print("%s: Loss: %s" % (i, loss.numpy()))
 
 ending_time = time.time()
 loss = combined_loss(model, inputs, expected_outputs)
