@@ -1,21 +1,9 @@
 import time
 import tensorflow
 
-import loss_functions
-
-class DenseLayer:
-    def __init__(self, input_count):
-        self.input_count = input_count
-
-    def build(self, output_count):
-        self.weights = tensorflow.Variable(tensorflow.constant(1., shape=(output_count, self.input_count,)), name="weights")
-        self.bias = tensorflow.Variable(tensorflow.zeros((output_count,)), name="bias")
-
-    def variables(self):
-        return [self.weights, self.bias]
-
-    def calculate(self, input):
-        return tensorflow.linalg.matvec(self.weights, input) + self.bias
+from loss_functions import mean_squared_error
+from dense_layer import DenseLayer
+from activation import relu
 
 class Model:
     def __init__(self, layers, output_count, loss_function):
@@ -59,10 +47,10 @@ def training_step(model, variables, inputs, expected_outputs, optimizer):
         return loss
 
 model = Model([
-    DenseLayer(2),
-], 2, loss_functions.mean_squared_error)
+    DenseLayer(2, relu),
+], 2, mean_squared_error)
 variables = model.variables()
-inputs = tensorflow.random.uniform((10000, 2), -2, 2)
+inputs = tensorflow.random.uniform((10000, 2), 0, 4)
 expected_outputs = tensorflow.reverse(inputs, axis=[1])
 batch_size = 32
 evenly_divisible_batch_count = inputs.shape[0] // batch_size
@@ -84,3 +72,4 @@ loss = model.combined_loss(inputs, expected_outputs)
 print("Final loss: %s (in %s seconds)" % (loss.numpy(), ending_time - starting_time))
 for variable in variables:
     print("Variable: %s, value: %s" % (variable.name, variable.numpy()))
+tensorflow.keras.Model.fit
