@@ -25,7 +25,7 @@ class Model:
 
     @tensorflow.function
     def combined_loss(self, input_values, expected_values):
-        return tensorflow.reduce_sum(tensorflow.vectorized_map(lambda x: self.loss(x[0], x[1]), (input_values, expected_values)))
+        return tensorflow.reduce_mean(tensorflow.vectorized_map(lambda x: self.loss(x[0], x[1]), (input_values, expected_values)))
 
     @tensorflow.function
     def training_step(self, variables, inputs, expected_outputs, optimizer):
