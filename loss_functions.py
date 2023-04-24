@@ -12,3 +12,7 @@ def binary_cross_entropy(output, expected):
             + (1 - expected) * tensorflow.math.log(1 - output + 1e-8)
         )
     )
+
+
+def categorical_cross_entropy(output, expected):
+    return -tensorflow.reduce_sum(expected * tensorflow.math.log(output + 1e-8), axis=0)
