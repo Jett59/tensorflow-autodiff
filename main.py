@@ -1,4 +1,5 @@
 import tensorflow
+import time
 
 from data import one_hot_encode_sequence, pad_end
 from loss_functions import binary_cross_entropy
@@ -15,19 +16,22 @@ dictionary = "abcdefghijklmnopqrstuvwxyz"
 def read_data():
     with open("spelling.txt", "r") as file:
         lines = file.readlines()
-        words = [line.split(" ")[0] for line in lines]
-        are_correctly_spelled = [line.split(" ")[1].strip() == "true" for line in lines]
+        split_lines = [line.split(" ") for line in lines]
+        words = [line[0] for line in split_lines]
+        are_correctly_spelled = [line[1] == "true" for line in split_lines]
         inputs = tensorflow.stack([pad_end(one_hot_encode_sequence(word, dictionary), input_length) for word in words])
         expected_outputs = tensorflow.stack([[1.] if is_correct else [0.] for is_correct in are_correctly_spelled])
         return inputs, expected_outputs
 
-
+start_time = time.time()
 inputs, expected_outputs = read_data()
+print("Read data in %s seconds" % (time.time() - start_time))
 model = Model([
-    DenseLayer(input_length, relu),
+    DenseLayer(input_length, None),
+    DenseLayer(input_length, None),
     DenseLayer(1, sigmoid)
 ], 1, binary_cross_entropy)
-optimizer = StochasticGradientDescent(0.01)
+optimizer = StochasticGradientDescent(0.1)
 
 model.train(inputs, expected_outputs, optimizer)
 

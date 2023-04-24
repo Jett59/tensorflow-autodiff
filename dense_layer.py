@@ -15,4 +15,7 @@ class DenseLayer(layer_base.Layer):
         return [self.weights, self.bias]
 
     def calculate(self, input):
-        return self.activation(tensorflow.linalg.matvec(self.weights, input) + self.bias)
+        if self.activation is None:
+            return tensorflow.linalg.matvec(self.weights, input) + self.bias
+        else:
+            return self.activation(tensorflow.linalg.matvec(self.weights, input) + self.bias)

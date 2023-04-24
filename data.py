@@ -1,10 +1,10 @@
-import tensorflow
-
-def one_hot_encode_symbol(symbol, dictionary):
-    return tensorflow.one_hot(dictionary.index(symbol), len(dictionary))
+import numpy
 
 def one_hot_encode_sequence(sequence, dictionary):
-    return  tensorflow.reshape(tensorflow.stack([one_hot_encode_symbol(symbol, dictionary) for symbol in sequence]), shape=(len(sequence) * len(dictionary),))
+    result = numpy.array([0.] * len(dictionary) * len(sequence), dtype=numpy.float32)
+    for i, letter in enumerate(sequence):
+        result[i * len(dictionary) + dictionary.index(letter)] = 1
+    return result
 
 def pad_end(value, length):
-    return tensorflow.pad(value, [[0, length - value.shape[0]]])
+    return numpy.pad(value, (0, length - len(value)), "constant")
